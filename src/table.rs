@@ -20,8 +20,8 @@ use std::str::Utf8Error;
 
 use crate::api::{mprintf, value_type, MprintfError, ValueType};
 use crate::errors::{Error, ErrorKind, Result};
-use crate::ext::sqlitex_declare_vtab;
 use crate::ext::{sqlite3ext_create_module_v2, sqlite3ext_vtab_distinct};
+use crate::ext::{sqlite3ext_vtab_rhs_value, sqlitex_declare_vtab};
 use serde::{Deserialize, Serialize};
 
 /// Possible operators for a given constraint, found and used in xBestIndex and xFilter.
@@ -199,6 +199,21 @@ impl IndexInfo {
         unsafe { sqlite3ext_vtab_distinct(self.index_info) }
     }
     // TODO idxFlags
+    pub fn rhs(&self, index: i32) -> Result<*mut sqlite3_value> {
+        unsafe {
+            let mut value = std::mem::MaybeUninit::uninit();
+            let rc = sqlite3ext_vtab_rhs_value(self.index_info, index, value.as_mut_ptr());
+            if rc == SQLITE_OKAY {
+                Ok(value.assume_init())
+            } else {
+                // TODO: New error kind
+                Err(Error::new(ErrorKind::Message(format!(
+                    "Unable to get rhs: {}",
+                    rc
+                ))))
+            }
+        }
+    }
 }
 
 /// Wraps the raw sqlite3_index_constraint and sqlite3_index_constraint_usage

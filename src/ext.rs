@@ -24,6 +24,7 @@ use sqlite3ext_sys::{
     sqlite3_result_text, sqlite3_set_auxdata, sqlite3_step, sqlite3_stmt, sqlite3_value,
     sqlite3_value_blob, sqlite3_value_bytes, sqlite3_value_double, sqlite3_value_int,
     sqlite3_value_int64, sqlite3_value_pointer, sqlite3_value_text, sqlite3_value_type,
+    sqlite3_vtab_rhs_value,
 };
 
 /// If creating a dynmically loadable extension, this MUST be redefined to point
@@ -313,6 +314,17 @@ pub unsafe fn sqlite3ext_create_module_v2(
 
 pub unsafe fn sqlite3ext_vtab_distinct(index_info: *mut sqlite3_index_info) -> i32 {
     ((*SQLITE3_API).vtab_distinct.expect(EXPECT_MESSAGE))(index_info)
+}
+
+pub unsafe fn sqlite3ext_vtab_rhs_value(
+    index_info: *mut sqlite3_index_info,
+    i: c_int,
+    value: *mut *mut sqlite3_value,
+) -> c_int {
+    if SQLITE3_API.is_null() {
+        return sqlite3_vtab_rhs_value(index_info, i, value);
+    }
+    ((*SQLITE3_API).vtab_rhs_value.expect(EXPECT_MESSAGE))(index_info, i, value)
 }
 
 pub unsafe fn sqlitex_declare_vtab(db: *mut sqlite3, s: *const c_char) -> i32 {
